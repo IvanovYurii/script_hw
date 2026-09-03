@@ -3,9 +3,9 @@
 // @name:en			HWH Titan Forge Debug Healer Combos
 // @name:ru			HWH Titan Forge Debug Healer Combos
 // @namespace		HWHTitanForgeDebug
-// @version			0.2.3-calc-iterations
-// WORK VERSION: v0.2.3-calc-iterations
-// DIAGNOSTIC: record DungeonFixBattle iteration counts and average Calc time
+// @version			0.2.4-calc-iterations-fix
+// WORK VERSION: v0.2.4-calc-iterations-fix
+// FIX: keep DungeonFixBattle diagnostic state available after the if block
 // SAFETY: no Worker, parallelism, or result-selection changes
 
 // @description		Extension for HeroWarsHelper script
@@ -2600,9 +2600,10 @@ i18nLangData['ru'] = Object.assign(i18nLangData['ru'], {
 		async resultBattle(battleData, args = {}) {
 			const startedAt = performance.now();
 			let fixedBattleMs = 0;
+			let dfb = null;
 			if (this.isFixedBattle) {
 				const fixStartedAt = performance.now();
-				const dfb = new UpdateDungeonFixBattle(battleData);
+				dfb = new UpdateDungeonFixBattle(battleData);
 				dfb.isShowResult = this.isShowFixLog;
 				const fixData = await dfb.start(Date.now() + this.timeoutFix, this.countFix);
 				fixedBattleMs = performance.now() - fixStartedAt;
