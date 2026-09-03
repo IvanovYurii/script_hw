@@ -3,9 +3,9 @@
 // @name:en			HWH Titan Forge Debug Healer Combos
 // @name:ru			HWH Titan Forge Debug Healer Combos
 // @namespace		HWHTitanForgeDebug
-// @version			0.3.1-ui-button-fix
-// WORK VERSION: v0.3.1-ui-button-fix
-// FIX: attach Titan Forge button after the main menu is initialized
+// @version			0.3.2-ui-button-visible
+// WORK VERSION: v0.3.2-ui-button-visible
+// FIX: attach Titan Forge before the visible Extensions button
 // SAFETY: no Worker or battle-result behavior changes
 
 // @description		Extension for HeroWarsHelper script
@@ -1464,6 +1464,10 @@ i18nLangData['ru'] = Object.assign(i18nLangData['ru'], {
 				return false;
 			}
 			button.button = scriptMenu.addButton(button);
+			const extensionsButton = buttons.extensions?.button;
+			if (extensionsButton?.parentElement && button.button?.parentElement) {
+				extensionsButton.parentElement.insertBefore(button.button, extensionsButton);
+			}
 			return true;
 		} catch (error) {
 			DebugUI.log('[DBG button attach error]', String(error?.stack || error));
