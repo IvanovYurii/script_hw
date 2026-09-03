@@ -3,7 +3,10 @@
 // @name:en			HWH Titan Forge Debug Healer Combos
 // @name:ru			HWH Titan Forge Debug Healer Combos
 // @namespace		HWHTitanForgeDebug
-// @version			0.2.0-debug-teams
+// @version			0.2.1-calc-analysis-base
+// WORK VERSION: v0.2.1-calc-analysis-base
+// BASELINE: no behavioral changes; Calc/BattleCalc dependency analysis only
+
 // @description		Extension for HeroWarsHelper script
 // @description:en	Extension for HeroWarsHelper script
 // @description:ru	Extension for HeroWarsHelper script
