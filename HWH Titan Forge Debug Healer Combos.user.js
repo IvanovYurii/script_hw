@@ -3,10 +3,10 @@
 // @name:en			HWH Titan Forge Debug Healer Combos
 // @name:ru			HWH Titan Forge Debug Healer Combos
 // @namespace		HWHTitanForgeDebug
-// @version			0.3.0-worker-probe
-// WORK VERSION: v0.3.0-worker-probe
-// DIAGNOSTIC: execute one real Calc copy in a Worker and report missing dependencies
-// SAFETY: Worker result is never submitted; main-thread calculation remains authoritative
+// @version			0.3.1-ui-button-fix
+// WORK VERSION: v0.3.1-ui-button-fix
+// FIX: attach Titan Forge button after the main menu is initialized
+// SAFETY: no Worker or battle-result behavior changes
 
 // @description		Extension for HeroWarsHelper script
 // @description:en	Extension for HeroWarsHelper script
@@ -1451,6 +1451,35 @@ i18nLangData['ru'] = Object.assign(i18nLangData['ru'], {
 		color: 'purple',
 		onClick: () => openDungeonForgeDebugPopup(),
 	};
+
+	const attachTitanForgeButton = () => {
+		const button = buttons?.HWHTitanForgeDebug;
+		const ScriptMenu = HWHClasses?.ScriptMenu;
+		if (!button || button.button || !ScriptMenu) {
+			return !!button?.button;
+		}
+		try {
+			const scriptMenu = ScriptMenu.getInst();
+			if (!scriptMenu?.addButton) {
+				return false;
+			}
+			button.button = scriptMenu.addButton(button);
+			return true;
+		} catch (error) {
+			DebugUI.log('[DBG button attach error]', String(error?.stack || error));
+			return false;
+		}
+	};
+
+	if (!attachTitanForgeButton()) {
+		let attachAttempts = 0;
+		const attachTimer = setInterval(() => {
+			attachAttempts += 1;
+			if (attachTitanForgeButton() || attachAttempts >= 40) {
+				clearInterval(attachTimer);
+			}
+		}, 250);
+	}
 
 	if (buttons?.testDungeon && buttons.testDungeon?.combineList) {
 		buttons.testDungeon.combineList.splice(1, 0, {
