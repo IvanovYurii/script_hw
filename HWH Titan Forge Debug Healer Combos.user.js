@@ -3,10 +3,10 @@
 // @name:en			HWH Titan Forge Debug Healer Combos
 // @name:ru			HWH Titan Forge Debug Healer Combos
 // @namespace		HWHTitanForgeDebug
-// @version			0.2.4-calc-iterations-fix
-// WORK VERSION: v0.2.4-calc-iterations-fix
-// FIX: keep DungeonFixBattle diagnostic state available after the if block
-// SAFETY: no Worker, parallelism, or result-selection changes
+// @version			0.3.0-worker-probe
+// WORK VERSION: v0.3.0-worker-probe
+// DIAGNOSTIC: execute one real Calc copy in a Worker and report missing dependencies
+// SAFETY: Worker result is never submitted; main-thread calculation remains authoritative
 
 // @description		Extension for HeroWarsHelper script
 // @description:en	Extension for HeroWarsHelper script
@@ -267,6 +267,85 @@
 			return root;
 		},
 	};
+
+
+	const DEBUG_WORKER_PROBE = true;
+	let workerProbeDone = false;
+
+	function runWorkerProbe(battleData, args = {}) {
+		if (!DEBUG_WORKER_PROBE || workerProbeDone) return;
+		workerProbeDone = true;
+
+		const calcSource = typeof Calc === 'function' ? Calc.toString() : '';
+		const battleCalcSource = typeof BattleCalc === 'function' ? BattleCalc.toString() : '';
+		const battleTypeSource = typeof getBattleType === 'function' ? getBattleType.toString() : '';
+		DebugUI.log('[DBG worker probe start]', {
+			attackerType: args.attackerType ?? battleData?.attackerType ?? null,
+			teamNum: args.teamNum ?? null,
+			hasCalc: !!calcSource,
+			hasBattleCalc: !!battleCalcSource,
+			hasGetBattleType: !!battleTypeSource,
+		});
+
+		if (!calcSource || !battleCalcSource || !battleTypeSource) {
+			DebugUI.log('[DBG worker probe result]', {
+				ok: false,
+				error: 'Required function source is unavailable',
+			});
+			return;
+		}
+
+		const workerCode = \`
+			self.onmessage = async ({ data }) => {
+				try {
+					const getBattleType = eval('(' + data.battleTypeSource + ')');
+					const BattleCalc = eval('(' + data.battleCalcSource + ')');
+					const Calc = eval('(' + data.calcSource + ')');
+					const result = await Calc(data.battleData);
+					self.postMessage({
+						ok: true,
+						resultType: typeof result,
+						resultKeys: result && typeof result === 'object' ? Object.keys(result) : [],
+					});
+				} catch (error) {
+					self.postMessage({
+						ok: false,
+						error: {
+							name: error?.name || 'Error',
+							message: error?.message || String(error),
+							stack: error?.stack || '',
+						},
+					});
+				}
+			};
+		\`;
+		const workerUrl = URL.createObjectURL(new Blob([workerCode], { type: 'application/javascript' }));
+		const worker = new Worker(workerUrl);
+		let settled = false;
+		const finish = (payload) => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(timeoutId);
+			worker.terminate();
+			URL.revokeObjectURL(workerUrl);
+			DebugUI.log('[DBG worker probe result]', payload);
+		};
+		const timeoutId = setTimeout(() => finish({
+			ok: false,
+			error: { name: 'TimeoutError', message: 'Worker probe timed out' },
+		}), 10000);
+		worker.onmessage = (event) => finish(event.data);
+		worker.onerror = (event) => finish({
+			ok: false,
+			error: {
+				name: 'WorkerError',
+				message: event.message || 'Worker execution failed',
+				filename: event.filename || '',
+				lineno: event.lineno || 0,
+			},
+		});
+		worker.postMessage({ battleData, calcSource, battleCalcSource, battleTypeSource });
+	}
 
 	const originalSetProgress = HWHFuncs.setProgress;
 	const originalHideProgress = HWHFuncs.hideProgress;
@@ -2599,6 +2678,7 @@ i18nLangData['ru'] = Object.assign(i18nLangData['ru'], {
 		}
 		async resultBattle(battleData, args = {}) {
 			const startedAt = performance.now();
+			runWorkerProbe(structuredClone(battleData), args);
 			let fixedBattleMs = 0;
 			let dfb = null;
 			if (this.isFixedBattle) {
