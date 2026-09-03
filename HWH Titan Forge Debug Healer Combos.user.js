@@ -3,9 +3,9 @@
 // @name:en			HWH Titan Forge Debug Healer Combos
 // @name:ru			HWH Titan Forge Debug Healer Combos
 // @namespace		HWHTitanForgeDebug
-// @version			0.3.2-ui-button-visible
-// WORK VERSION: v0.3.2-ui-button-visible
-// FIX: attach Titan Forge before the visible Extensions button
+// @version			0.3.3-bootstrap-retry
+// WORK VERSION: v0.3.3-bootstrap-retry
+// FIX: retry startup until the main HeroWarsHelper objects exist
 // SAFETY: no Worker or battle-result behavior changes
 
 // @description		Extension for HeroWarsHelper script
@@ -24,12 +24,13 @@
 // ==/UserScript==
 
 (function () {
-	if (!this.HWHClasses) {
-		console.log('%cObject for extension not found', 'color: red');
-		return;
-	}
+	const boot = () => {
+		if (!this.HWHClasses || !this.HWHFuncs || !this.HWHData) {
+			setTimeout(boot, 250);
+			return;
+		}
 
-	console.log('%cStart Extension ' + GM_info.script.name + ', v' + GM_info.script.version + ' by ' + GM_info.script.author, 'color: red');
+		console.log('%cStart Extension ' + GM_info.script.name + ', v' + GM_info.script.version + ' by ' + GM_info.script.author, 'color: red');
 	const DEBUG_FORCE_CUSTOM_TEAMS = true;
 	const DEBUG_LOG_SIMULATIONS = true;
 	const DEBUG_STORAGE_KEY = 'HWHTitanForgeDebug.teams.v1';
@@ -3133,4 +3134,6 @@ i18nLangData['ru'] = Object.assign(i18nLangData['ru'], {
 			return Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 1e9);
 		}
 	}
+	};
+	boot();
 })();
