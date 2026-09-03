@@ -3,9 +3,10 @@
 // @name:en			HWH Titan Forge Debug Healer Combos
 // @name:ru			HWH Titan Forge Debug Healer Combos
 // @namespace		HWHTitanForgeDebug
-// @version			0.2.1-calc-analysis-base
-// WORK VERSION: v0.2.1-calc-analysis-base
-// BASELINE: no behavioral changes; Calc/BattleCalc dependency analysis only
+// @version			0.2.2-calc-timing
+// WORK VERSION: v0.2.2-calc-timing
+// DIAGNOSTIC: measure request, fixed-battle, and Calc/BattleCalc durations
+// SAFETY: no Worker, parallelism, or result-selection changes
 
 // @description		Extension for HeroWarsHelper script
 // @description:en	Extension for HeroWarsHelper script
@@ -2568,6 +2569,7 @@ i18nLangData['ru'] = Object.assign(i18nLangData['ru'], {
 				}
 			}
 
+			const requestStartedAt = performance.now();
 			const battleData = await this.executeWithRetry({
 				name: 'dungeonStartBattle',
 				args: {
@@ -2576,24 +2578,47 @@ i18nLangData['ru'] = Object.assign(i18nLangData['ru'], {
 					heroes,
 				},
 			});
+			const requestMs = performance.now() - requestStartedAt;
 			if (!battleData) {
+				DebugUI.log('[DBG timing] dungeonStartBattle failed', {
+					attackerType,
+					teamNum,
+					requestMs: Math.round(requestMs * 100) / 100,
+				});
 				return false;
 			}
 
-			return this.resultBattle(battleData, { teamNum, attackerType });
+			const result = await this.resultBattle(battleData, { teamNum, attackerType });
+			DebugUI.log('[DBG timing] startBattle total', {
+				attackerType,
+				teamNum,
+				requestMs: Math.round(requestMs * 100) / 100,
+				resultAvailable: !!result,
+			});
+			return result;
 		}
-
 		async resultBattle(battleData, args = {}) {
+			const startedAt = performance.now();
+			let fixedBattleMs = 0;
 			if (this.isFixedBattle) {
+				const fixStartedAt = performance.now();
 				const dfb = new UpdateDungeonFixBattle(battleData);
 				dfb.isShowResult = this.isShowFixLog;
 				const fixData = await dfb.start(Date.now() + this.timeoutFix, this.countFix);
+				fixedBattleMs = performance.now() - fixStartedAt;
 				battleData.progress = [{ attackers: { input: ['auto', 0, 0, 'auto', 0, fixData.timer] } }];
 			}
+			const calcStartedAt = performance.now();
 			const result = await Calc(battleData);
+			DebugUI.log('[DBG timing] Calc/BattleCalc', {
+				attackerType: args.attackerType ?? battleData.attackerType ?? null,
+				teamNum: args.teamNum ?? battleData.teamNum ?? null,
+				fixedBattleMs: Math.round(fixedBattleMs * 100) / 100,
+				calcMs: Math.round((performance.now() - calcStartedAt) * 100) / 100,
+				totalResultBattleMs: Math.round((performance.now() - startedAt) * 100) / 100,
+			});
 			return { ...result, ...args };
 		}
-
 		getThresholdTimer() {
 			let { isSubActive } = HWHFuncs;
 			if (typeof isSubActive !== 'function') {
