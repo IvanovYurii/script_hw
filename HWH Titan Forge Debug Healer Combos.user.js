@@ -3,9 +3,9 @@
 // @name:en			HWH Titan Forge Debug Healer Combos
 // @name:ru			HWH Titan Forge Debug Healer Combos
 // @namespace		HWHTitanForgeDebug
-// @version			0.2.2-calc-timing
-// WORK VERSION: v0.2.2-calc-timing
-// DIAGNOSTIC: measure request, fixed-battle, and Calc/BattleCalc durations
+// @version			0.2.3-calc-iterations
+// WORK VERSION: v0.2.3-calc-iterations
+// DIAGNOSTIC: record DungeonFixBattle iteration counts and average Calc time
 // SAFETY: no Worker, parallelism, or result-selection changes
 
 // @description		Extension for HeroWarsHelper script
@@ -2614,6 +2614,9 @@ i18nLangData['ru'] = Object.assign(i18nLangData['ru'], {
 				attackerType: args.attackerType ?? battleData.attackerType ?? null,
 				teamNum: args.teamNum ?? battleData.teamNum ?? null,
 				fixedBattleMs: Math.round(fixedBattleMs * 100) / 100,
+				fixIterations: this.isFixedBattle ? (dfb.count ?? null) : 0,
+				fixMaxIterations: this.isFixedBattle ? (dfb.maxCount ?? null) : 0,
+				fixAvgCalcMs: this.isFixedBattle && Number.isFinite(dfb.avgTime) ? Math.round(dfb.avgTime * 100) / 100 : null,
 				calcMs: Math.round((performance.now() - calcStartedAt) * 100) / 100,
 				totalResultBattleMs: Math.round((performance.now() - startedAt) * 100) / 100,
 			});
