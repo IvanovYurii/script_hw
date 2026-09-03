@@ -319,7 +319,8 @@
 				}
 			};
 		\`;
-		const worker = new Worker(URL.createObjectURL(new Blob([workerCode], { type: 'application/javascript' })));
+		const workerUrl = URL.createObjectURL(new Blob([workerCode], { type: 'application/javascript' }));
+		const worker = new Worker(workerUrl);
 		let settled = false;
 		const finish = (payload) => {
 			if (settled) return;
@@ -329,7 +330,6 @@
 			URL.revokeObjectURL(workerUrl);
 			DebugUI.log('[DBG worker probe result]', payload);
 		};
-		const workerUrl = URL.createObjectURL(new Blob([workerCode], { type: 'application/javascript' }));
 		const timeoutId = setTimeout(() => finish({
 			ok: false,
 			error: { name: 'TimeoutError', message: 'Worker probe timed out' },
